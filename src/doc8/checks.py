@@ -53,8 +53,7 @@ class CheckIndentationNoTab(LineCheck):
     REPORTS = frozenset(["D003"])
 
     def report_iter(self, line):
-        match = self._STARTING_WHITESPACE_REGEX.search(line)
-        if match:
+        if match := self._STARTING_WHITESPACE_REGEX.search(line):
             spaces = match.group(1)
             if "\t" in spaces:
                 yield ("D003", "Tabulation used for indentation")
@@ -173,9 +172,7 @@ class CheckMaxLineLength(ContentCheck):
             return None
 
         def filter_systems(node):
-            if utils.has_any_node_type(node, (docutils_nodes.system_message,)):
-                return False
-            return True
+            return not utils.has_any_node_type(node, (docutils_nodes.system_message,))
 
         nodes_lines = []
         first_line = -1
@@ -242,9 +239,8 @@ class CheckMaxLineLength(ContentCheck):
 
     def _txt_checker(self, parsed_file):
         for i, line in enumerate(parsed_file.lines_iter()):
-            if len(line) > self._max_line_length:
-                if not utils.contains_url(line):
-                    yield (i + 1, "D001", "Line too long")
+            if len(line) > self._max_line_length and not utils.contains_url(line):
+                yield (i + 1, "D001", "Line too long")
 
     def _rst_checker(self, parsed_file):
         lines = list(parsed_file.lines_iter())
@@ -255,18 +251,17 @@ class CheckMaxLineLength(ContentCheck):
         def find_containing_nodes(num):
             if num < first_line and nodes_lines:
                 return [nodes_lines[0][0]]
-            contained_in = []
-            for (n, (line_min, line_max)) in nodes_lines:
-                if line_min <= num <= line_max:
-                    contained_in.append((n, (line_min, line_max)))
+            contained_in = [
+                (n, (line_min, line_max))
+                for (n, (line_min, line_max)) in nodes_lines
+                if line_min <= num <= line_max
+            ]
+
             smallest_span = None
             best_nodes = []
             for (n, (line_min, line_max)) in contained_in:
                 span = line_max - line_min
-                if smallest_span is None:
-                    smallest_span = span
-                    best_nodes = [n]
-                elif span < smallest_span:
+                if smallest_span is None or span < smallest_span:
                     smallest_span = span
                     best_nodes = [n]
                 elif span == smallest_span:
@@ -275,7 +270,7 @@ class CheckMaxLineLength(ContentCheck):
 
         def any_types(nodes, types):
             # pylint: disable=use-a-generator
-            return any([isinstance(n, types) for n in nodes])
+            return any(isinstance(n, types) for n in nodes)
 
         skip_types = (docutils_nodes.target, docutils_nodes.literal_block)
         title_types = (
@@ -310,5 +305,4 @@ class CheckMaxLineLength(ContentCheck):
             checker_func = self._txt_checker
         else:
             checker_func = self._rst_checker
-        for issue in checker_func(parsed_file):
-            yield issue
+        yield from checker_func(parsed_file)

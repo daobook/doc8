@@ -90,10 +90,8 @@ class ParsedFile(object):
             line = str(line, encoding=self.encoding)
             if remove_trailing_newline:
                 # Cope with various OS new line conventions
-                if line.endswith("\n"):
-                    line = line[:-1]
-                if line.endswith("\r"):
-                    line = line[:-1]
+                line = line.removesuffix("\n")
+                line = line.removesuffix("\r")
             yield line
 
     @property

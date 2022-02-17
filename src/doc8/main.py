@@ -125,8 +125,7 @@ def from_ini(fp):
     try:
         extensions = parser.get("doc8", "extensions")
         extensions = extensions.split(",")
-        extensions = [s.strip() for s in extensions if s.strip()]
-        if extensions:
+        if extensions := [s.strip() for s in extensions if s.strip()]:
             cfg["extension"] = extensions
     except (configparser.NoSectionError, configparser.NoOptionError):
         pass
@@ -134,8 +133,7 @@ def from_ini(fp):
 
 
 def from_toml(fp):
-    cfg = toml.load(fp).get("tool", {}).get("doc8", {})
-    return cfg
+    return toml.load(fp).get("tool", {}).get("doc8", {})
 
 
 def extract_config(args):
@@ -168,17 +166,12 @@ def fetch_checks(cfg):
     mgr = extension.ExtensionManager(
         namespace="doc8.extension.check", invoke_on_load=True, invoke_args=(cfg.copy(),)
     )
-    addons = []
-    for e in mgr:
-        addons.append(e.obj)
+    addons = [e.obj for e in mgr]
     return base + addons
 
 
 def setup_logging(verbose):
-    if verbose:
-        level = logging.DEBUG
-    else:
-        level = logging.ERROR
+    level = logging.DEBUG if verbose else logging.ERROR
     logging.basicConfig(
         level=level, format="%(levelname)s: %(message)s", stream=sys.stdout
     )
@@ -330,9 +323,7 @@ class Result(object):
     def report(self):
         lines = []
         if self.capture:
-            for error in self.errors:
-                lines.append("%s:%s: %s %s" % error[1:])
-
+            lines.extend("%s:%s: %s %s" % error[1:] for error in self.errors)
         lines.extend(
             [
                 "=" * 8,
@@ -344,9 +335,10 @@ class Result(object):
 
         if self.error_counts:
             lines.append("Detailed error counts:")
-            for check_name in sorted(self.error_counts.keys()):
-                check_errors = self.error_counts[check_name]
-                lines.append("    - %s = %s" % (check_name, check_errors))
+            lines.extend(
+                "    - %s = %s" % (check_name, self.error_counts[check_name])
+                for check_name in sorted(self.error_counts.keys())
+            )
 
         return "\n".join(lines)
 
